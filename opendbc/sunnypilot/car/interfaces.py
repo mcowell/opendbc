@@ -28,6 +28,7 @@ from opendbc.sunnypilot.car.rivian.values import RivianFlagsSP
 from opendbc.sunnypilot.car.subaru.values_ext import SubaruFlagsSP, SubaruSafetyFlagsSP
 from opendbc.sunnypilot.car.tesla.values import MadsScreenButtonType, TeslaFlagsSP, TeslaSafetyFlagsSP
 from opendbc.sunnypilot.car.toyota.values import ToyotaFlagsSP
+from opendbc.sunnypilot.car.volkswagen.values_ext import VolkswagenFlagsSP, VolkswagenSafetyFlagsSP
 
 
 class LatControlInputs(NamedTuple):
@@ -118,6 +119,7 @@ def setup_interfaces(CI, CP: structs.CarParams, CP_SP: structs.CarParamsSP,
   _initialize_radar_tracks(CP, CP_SP, can_recv, can_send)
   _initialize_stop_and_go(CP, CP_SP, params_dict)
   _initialize_toyota(CP, CP_SP, params_dict)
+  _initialize_volkswagen_vze(CP, CP_SP, params_dict)
 
 
 def _initialize_custom_longitudinal_tuning(CI, CP: structs.CarParams, CP_SP: structs.CarParamsSP,
@@ -179,6 +181,15 @@ def _initialize_stop_and_go(CP: structs.CarParams, CP_SP: structs.CarParamsSP, p
       CP_SP.flags |= SubaruFlagsSP.STOP_AND_GO_MANUAL_PARKING_BRAKE.value
     if stop_and_go or stop_and_go_manual_parking_brake:
       CP_SP.safetyParam |= SubaruSafetyFlagsSP.STOP_AND_GO
+
+
+def _initialize_volkswagen_vze(CP: structs.CarParams, CP_SP: structs.CarParamsSP, params_dict: dict[str, str]) -> None:
+  # Show openpilot's speed limit as the traffic sign in the instrument cluster (MQB safety mode only).
+  # Needs VZE coded in camera and cluster; panda then blocks the camera's VZE messages.
+  is_mqb = any(cfg.safetyModel == structs.CarParams.SafetyModel.volkswagen for cfg in CP.safetyConfigs)
+  if CP.brand == 'volkswagen' and is_mqb and int(params_dict.get("VolkswagenClusterSpeedLimit", 0)) == 1:
+    CP_SP.flags |= VolkswagenFlagsSP.VZE_DISPLAY.value
+    CP_SP.safetyParam |= VolkswagenSafetyFlagsSP.VZE
 
 
 def _initialize_toyota(CP: structs.CarParams, CP_SP: structs.CarParamsSP, params_dict: dict[str, str]) -> None:

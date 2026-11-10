@@ -6,8 +6,10 @@ from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarControllerBase
 from opendbc.car.volkswagen import mebcan, mlbcan, mqbcan, pqcan
 from opendbc.car.volkswagen.values import CanBus, CarControllerParams, VolkswagenFlags
+from opendbc.sunnypilot.car.volkswagen.values_ext import VolkswagenFlagsSP
 
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
+VZE_STEP = 20  # VZE_01/VZE_02 at 5 Hz, as sent by the camera
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 
 
@@ -192,6 +194,10 @@ class CarController(CarControllerBase):
         set_speed = hud_control.setSpeed * CV.MS_TO_KPH
         can_sends.append(self.CCS.create_acc_hud_control(self.packer_pt, self.CAN.pt, acc_hud_status, set_speed,
                                                          lead_distance, hud_control.leadDistanceBars))
+
+    # sunnypilot: traffic sign (speed limit) in the instrument cluster, replacing the camera's VZE_01/VZE_02 (5 Hz)
+    if self.CP_SP.flags & VolkswagenFlagsSP.VZE_DISPLAY and self.frame % VZE_STEP == 0:
+      can_sends.extend(mqbcan.create_vze_display(self.packer_pt, self.CAN.pt, CC_SP.speedLimitDisplay * CV.MS_TO_KPH))
 
     # **** Stock ACC Button Controls **************************************** #
 

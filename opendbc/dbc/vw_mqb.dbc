@@ -1524,6 +1524,14 @@ BO_ 1123 PSD_05: 8 XXX
 
 BO_ 1124 PSD_06: 8 XXX
 
+BO_ 385 VZE_01: 8 XXX
+ SG_ VZE_Einheit_mph : 0|1@1+ (1,0) [0|1] "" XXX
+ SG_ VZE_Tempolimit : 11|5@1+ (5,0) [0|155] "" XXX
+
+BO_ 668 VZE_02: 8 XXX
+ SG_ VZE_Tempolimit : 11|5@1+ (5,0) [0|155] "" XXX
+ SG_ UNKNOWN_1 : 24|8@1+ (1,0) [0|255] "" XXX
+
 BO_ 988 Gateway_73: 8 XXX
  SG_ UNKNOWN_1 : 15|2@0+ (1,0) [0|3] "" XXX
  SG_ GE_Fahrstufe : 40|4@1+ (1,0) [0|15] "" XXX
@@ -1645,6 +1653,9 @@ CM_ SG_ 870 Fast_Send_Rate_Active "CAN message send rate";
 CM_ SG_ 919 LDW_DLC "Probable DLC (distance to line crossing)";
 CM_ SG_ 919 LDW_TLC "Probable TLC (time to line crossing)";
 CM_ SG_ 919 LDW_Unknown "Might be a steering pressed / driver active flag";
+CM_ SG_ 385 VZE_Tempolimit "Traffic sign recognition speed limit from the camera, 0 = no sign. Reverse engineered from commaCarSegments; message name assumed";
+CM_ SG_ 385 VZE_Einheit_mph "Appears set on North American cars reporting mph limits";
+CM_ SG_ 668 UNKNOWN_1 "0x70 on nearly all cars";
 CM_ SG_ 919 Alert_Message "Static table of alert messages to be invoked in the instrument cluster, some with or without beeps, 0 = no current message";
 CM_ SG_ 919 LDW_Direction "Left/right indicator for DLC and TLC";
 CM_ SG_ 919 Right_Lane_Status "Display brightness range, 0 = no lane, 3 = full brightness";

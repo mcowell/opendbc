@@ -4,6 +4,8 @@ import numpy as np
 from opendbc.car.structs import CarParams
 import opendbc.safety.tests.common as common
 from opendbc.car.volkswagen.values import VolkswagenSafetyFlags
+from opendbc.safety.tests.libsafety import libsafety_py
+from opendbc.sunnypilot.car.volkswagen.values_ext import VolkswagenSafetyFlagsSP
 
 MAX_ACCEL = 2.0
 MIN_ACCEL = -3.5
@@ -15,6 +17,8 @@ MSG_GRA_ACC_01 = 0x12B  # TX by OP, ACC control buttons for cancel/resume
 MSG_ACC_07 = 0x12E      # TX by OP, ACC control instructions to the drivetrain coordinator
 MSG_ACC_02 = 0x30C      # TX by OP, ACC HUD data to the instrument cluster
 MSG_LDW_02 = 0x397      # TX by OP, Lane line recognition and text alerts
+MSG_VZE_01 = 0x181      # TX by OP (sunnypilot VZE flag), traffic sign speed limit for the cluster
+MSG_VZE_02 = 0x29C      # TX by OP (sunnypilot VZE flag), traffic sign speed limit for the cluster
 class TestVolkswagenMqbSafetyBase(common.CarSafetyTest, common.DriverTorqueSteeringSafetyTest):
   DBC = "vw_mqb"
   RELAY_MALFUNCTION_ADDRS = {0: (MSG_HCA_01, MSG_LDW_02), 2: (MSG_LH_EPS_03,)}
@@ -172,5 +176,29 @@ class TestVolkswagenMqbLongSafety(TestVolkswagenMqbSafetyBase):
         self.assertEqual(send, self._tx(self._acc_07_msg(accel)), (controls_allowed, accel))
         # ensure the optional secondary accel field remains inactive for now
         self.assertEqual(is_inactive_accel, self._tx(self._acc_07_msg(accel, secondary_accel=accel)), (controls_allowed, accel))
+
+
+class VolkswagenMqbVzeBase:
+  # sunnypilot VZE flag: openpilot sends VZE_01/VZE_02 to the cluster and the camera's copies are blocked
+  def setUp(self):
+    libsafety_py.libsafety.set_current_safety_param_sp(VolkswagenSafetyFlagsSP.VZE)
+    super().setUp()
+    # init_tests() clears param_sp; keep it set for tests that re-init the safety hooks
+    self.safety.set_current_safety_param_sp(VolkswagenSafetyFlagsSP.VZE)
+
+
+class TestVolkswagenMqbStockVzeSafety(VolkswagenMqbVzeBase, TestVolkswagenMqbStockSafety):
+  TX_MSGS = TestVolkswagenMqbStockSafety.TX_MSGS + [[MSG_VZE_01, 0], [MSG_VZE_02, 0]]
+  FWD_BLACKLISTED_ADDRS = {0: [MSG_LH_EPS_03], 2: [MSG_HCA_01, MSG_LDW_02, MSG_VZE_01, MSG_VZE_02]}
+  RELAY_MALFUNCTION_ADDRS = {0: (MSG_HCA_01, MSG_LDW_02, MSG_VZE_01, MSG_VZE_02), 2: (MSG_LH_EPS_03,)}
+
+
+class TestVolkswagenMqbLongVzeSafety(VolkswagenMqbVzeBase, TestVolkswagenMqbLongSafety):
+  TX_MSGS = TestVolkswagenMqbLongSafety.TX_MSGS + [[MSG_VZE_01, 0], [MSG_VZE_02, 0]]
+  FWD_BLACKLISTED_ADDRS = {0: [MSG_LH_EPS_03], 2: [MSG_HCA_01, MSG_LDW_02, MSG_ACC_02, MSG_ACC_06, MSG_ACC_07, MSG_VZE_01, MSG_VZE_02]}
+  RELAY_MALFUNCTION_ADDRS = {0: (MSG_HCA_01, MSG_LDW_02, MSG_ACC_02, MSG_ACC_06, MSG_ACC_07, MSG_VZE_01, MSG_VZE_02),
+                             2: (MSG_LH_EPS_03,)}
+
+
 if __name__ == "__main__":
   unittest.main()

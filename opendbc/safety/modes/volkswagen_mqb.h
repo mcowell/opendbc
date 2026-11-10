@@ -3,6 +3,11 @@
 #include "opendbc/safety/declarations.h"
 #include "opendbc/safety/modes/volkswagen_common.h"
 
+// sunnypilot: replace the camera's traffic sign recognition (VZE) display messages with openpilot's speed limit.
+// Requires VZE coded in camera + instrument cluster; the camera's own VZE_01/VZE_02 are blocked (check_relay).
+#define MSG_VZE_01           0x181U   // TX by OP, traffic sign (speed limit) shown in the instrument cluster
+#define MSG_VZE_02           0x29CU   // TX by OP, traffic sign (speed limit), second copy
+
 static safety_config volkswagen_mqb_init(uint16_t param) {
   // Transmit of GRA_ACC_01 is allowed on bus 0 and 2 to keep compatibility with gateway and camera integration
   // MSG_LH_EPS_03: openpilot needs to replace apparent driver steering input torque to pacify VW Emergency Assist
@@ -23,6 +28,27 @@ static safety_config volkswagen_mqb_init(uint16_t param) {
     {MSG_ACC_07, 0, 8, .check_relay = true},
   };
 
+  static const CanMsg VOLKSWAGEN_MQB_STOCK_VZE_TX_MSGS[] = {
+    {MSG_HCA_01, 0, 8, .check_relay = true},
+    {MSG_GRA_ACC_01, 0, 8, .check_relay = false},
+    {MSG_GRA_ACC_01, 2, 8, .check_relay = false},
+    {MSG_LDW_02, 0, 8, .check_relay = true},
+    {MSG_LH_EPS_03, 2, 8, .check_relay = true},
+    {MSG_VZE_01, 0, 8, .check_relay = true},
+    {MSG_VZE_02, 0, 8, .check_relay = true},
+  };
+
+  static const CanMsg VOLKSWAGEN_MQB_LONG_VZE_TX_MSGS[] = {
+    {MSG_HCA_01, 0, 8, .check_relay = true},
+    {MSG_LDW_02, 0, 8, .check_relay = true},
+    {MSG_LH_EPS_03, 2, 8, .check_relay = true},
+    {MSG_ACC_02, 0, 8, .check_relay = true},
+    {MSG_ACC_06, 0, 8, .check_relay = true},
+    {MSG_ACC_07, 0, 8, .check_relay = true},
+    {MSG_VZE_01, 0, 8, .check_relay = true},
+    {MSG_VZE_02, 0, 8, .check_relay = true},
+  };
+
   static RxCheck volkswagen_mqb_rx_checks[] = {
     {.msg = {{MSG_ESP_19, 0, 8, 100U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_LH_EPS_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
@@ -41,8 +67,18 @@ static safety_config volkswagen_mqb_init(uint16_t param) {
   SAFETY_UNUSED(param);
 #endif
 
-  return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mqb_rx_checks, VOLKSWAGEN_MQB_LONG_TX_MSGS) : \
-                                   BUILD_SAFETY_CFG(volkswagen_mqb_rx_checks, VOLKSWAGEN_MQB_STOCK_TX_MSGS);
+  const uint16_t VOLKSWAGEN_PARAM_SP_VZE = 1;
+  const bool volkswagen_vze = GET_FLAG(current_safety_param_sp, VOLKSWAGEN_PARAM_SP_VZE);
+
+  safety_config ret;
+  if (volkswagen_longitudinal) {
+    ret = volkswagen_vze ? BUILD_SAFETY_CFG(volkswagen_mqb_rx_checks, VOLKSWAGEN_MQB_LONG_VZE_TX_MSGS) : \
+                           BUILD_SAFETY_CFG(volkswagen_mqb_rx_checks, VOLKSWAGEN_MQB_LONG_TX_MSGS);
+  } else {
+    ret = volkswagen_vze ? BUILD_SAFETY_CFG(volkswagen_mqb_rx_checks, VOLKSWAGEN_MQB_STOCK_VZE_TX_MSGS) : \
+                           BUILD_SAFETY_CFG(volkswagen_mqb_rx_checks, VOLKSWAGEN_MQB_STOCK_TX_MSGS);
+  }
+  return ret;
 }
 
 static void volkswagen_mqb_rx_hook(const CANPacket_t *msg) {

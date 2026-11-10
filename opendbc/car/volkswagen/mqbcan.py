@@ -140,6 +140,17 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance
   return packer.make_can_msg("ACC_02", bus, values)
 
 
+# sunnypilot: VZE = Verkehrszeichenerkennung (traffic sign recognition), shown in the instrument cluster.
+# Replaces the camera's own VZE_01/VZE_02, which panda blocks when the VZE safety flag is set.
+def create_vze_display(packer, bus, speed_limit_kph: int):
+  # 5 km/h steps, 0 = no sign; km/h only (the mph flag is not well understood yet)
+  limit = int(round(min(max(speed_limit_kph, 0), 155) / 5.) * 5)
+  return [
+    packer.make_can_msg("VZE_01", bus, {"VZE_Tempolimit": limit}),
+    packer.make_can_msg("VZE_02", bus, {"VZE_Tempolimit": limit, "UNKNOWN_1": 0x70}),
+  ]
+
+
 # AWV = Stopping Distance Reduction
 # Refer to Self Study Program 890253: Volkswagen Driver Assistance Systems, Design and Function
 
