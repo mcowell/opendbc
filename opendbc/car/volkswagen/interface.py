@@ -20,9 +20,9 @@ class CarInterface(CarInterfaceBase):
     if vze_bap is not None:
       cam_bus = self.CC.CAN.cam
       for nanos, msgs in can_packets:
-        for msg in msgs:
-          if msg.address == VZE_BAP_ADDR and msg.src == cam_bus:
-            vze_bap.feed(nanos, msg.dat)
+        for address, dat, src in msgs:  # plain tuples from card, CanData in tests
+          if address == VZE_BAP_ADDR and src == cam_bus:
+            vze_bap.feed(nanos, dat)
     return super().update(can_packets)
 
   @staticmethod
