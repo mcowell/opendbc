@@ -4,6 +4,7 @@ from opendbc.car.volkswagen.carcontroller import CarController
 from opendbc.car.volkswagen.carstate import CarState
 from opendbc.car.volkswagen.radar_interface import RadarInterface
 from opendbc.car.volkswagen.values import CanBus, CAR, DBC, NetworkLocation, TransmissionType, VolkswagenFlags, VolkswagenSafetyFlags
+from opendbc.sunnypilot.car.volkswagen.vze_bap import VZE_BAP_ADDR
 
 class CarInterface(CarInterfaceBase):
   CarState = CarState
@@ -12,6 +13,17 @@ class CarInterface(CarInterfaceBase):
 
   DRIVABLE_GEARS = (structs.CarState.GearShifter.eco, structs.CarState.GearShifter.sport,
                     structs.CarState.GearShifter.manumatic)
+
+  def update(self, can_packets):
+    # sunnypilot: pass the camera's traffic sign BAP frames (blocked by panda) to the relay in the car controller
+    vze_bap = getattr(self.CC, 'vze_bap', None)
+    if vze_bap is not None:
+      cam_bus = self.CC.CAN.cam
+      for nanos, msgs in can_packets:
+        for msg in msgs:
+          if msg.address == VZE_BAP_ADDR and msg.src == cam_bus:
+            vze_bap.feed(nanos, msg.dat)
+    return super().update(can_packets)
 
   @staticmethod
   def _get_params(ret: structs.CarParams, candidate: CAR, fingerprint, car_fw, alpha_long, is_release, docs) -> structs.CarParams:

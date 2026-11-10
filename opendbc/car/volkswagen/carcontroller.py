@@ -6,7 +6,9 @@ from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarControllerBase
 from opendbc.car.volkswagen import mebcan, mlbcan, mqbcan, pqcan
 from opendbc.car.volkswagen.values import CanBus, CarControllerParams, VolkswagenFlags
+from opendbc.car.can_definitions import CanData
 from opendbc.sunnypilot.car.volkswagen.values_ext import VolkswagenFlagsSP
+from opendbc.sunnypilot.car.volkswagen.vze_bap import VZE_BAP_ADDR, VzeBapRelay
 
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 VZE_STEP = 20  # VZE_01/VZE_02 at 5 Hz, as sent by the camera
@@ -61,6 +63,7 @@ class CarController(CarControllerBase):
     self.distance_bar_frame = 0
     self.gra_acc_counter_last = None
     self.hca_mitigation = HCAMitigation(self.CCP)
+    self.vze_bap = VzeBapRelay() if CP_SP.flags & VolkswagenFlagsSP.VZE_DISPLAY else None
 
   def update(self, CC, CC_SP, CS, now_nanos):
     actuators = CC.actuators
@@ -196,8 +199,13 @@ class CarController(CarControllerBase):
                                                          lead_distance, hud_control.leadDistanceBars))
 
     # sunnypilot: traffic sign (speed limit) in the instrument cluster, replacing the camera's VZE_01/VZE_02 (5 Hz)
-    if self.CP_SP.flags & VolkswagenFlagsSP.VZE_DISPLAY and self.frame % VZE_STEP == 0:
-      can_sends.extend(mqbcan.create_vze_display(self.packer_pt, self.CAN.pt, CC_SP.speedLimitDisplay * CV.MS_TO_KPH))
+    # and the sign in the camera's BAP stream, which is what the cluster actually draws
+    if self.vze_bap is not None:
+      speed_limit_kph = CC_SP.speedLimitDisplay * CV.MS_TO_KPH
+      if self.frame % VZE_STEP == 0:
+        can_sends.extend(mqbcan.create_vze_display(self.packer_pt, self.CAN.pt, speed_limit_kph))
+      self.vze_bap.set_limit(speed_limit_kph)
+      can_sends.extend(CanData(VZE_BAP_ADDR, frame, self.CAN.pt) for frame in self.vze_bap.step(now_nanos))
 
     # **** Stock ACC Button Controls **************************************** #
 

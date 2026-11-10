@@ -7,6 +7,7 @@
 // Requires VZE coded in camera + instrument cluster; the camera's own VZE_01/VZE_02 are blocked (check_relay).
 #define MSG_VZE_01           0x181U   // TX by OP, traffic sign (speed limit) shown in the instrument cluster
 #define MSG_VZE_02           0x29CU   // TX by OP, traffic sign (speed limit), second copy
+#define MSG_VZE_BAP          0x17332110U  // TX by OP, camera BAP stream (LSG 0x21) relayed with openpilot's sign; DLC varies
 
 static safety_config volkswagen_mqb_init(uint16_t param) {
   // Transmit of GRA_ACC_01 is allowed on bus 0 and 2 to keep compatibility with gateway and camera integration
@@ -36,6 +37,13 @@ static safety_config volkswagen_mqb_init(uint16_t param) {
     {MSG_LH_EPS_03, 2, 8, .check_relay = true},
     {MSG_VZE_01, 0, 8, .check_relay = true},
     {MSG_VZE_02, 0, 8, .check_relay = true},
+    {MSG_VZE_BAP, 0, 2, .check_relay = true},
+    {MSG_VZE_BAP, 0, 3, .check_relay = true},
+    {MSG_VZE_BAP, 0, 4, .check_relay = true},
+    {MSG_VZE_BAP, 0, 5, .check_relay = true},
+    {MSG_VZE_BAP, 0, 6, .check_relay = true},
+    {MSG_VZE_BAP, 0, 7, .check_relay = true},
+    {MSG_VZE_BAP, 0, 8, .check_relay = true},
   };
 
   static const CanMsg VOLKSWAGEN_MQB_LONG_VZE_TX_MSGS[] = {
@@ -47,6 +55,13 @@ static safety_config volkswagen_mqb_init(uint16_t param) {
     {MSG_ACC_07, 0, 8, .check_relay = true},
     {MSG_VZE_01, 0, 8, .check_relay = true},
     {MSG_VZE_02, 0, 8, .check_relay = true},
+    {MSG_VZE_BAP, 0, 2, .check_relay = true},
+    {MSG_VZE_BAP, 0, 3, .check_relay = true},
+    {MSG_VZE_BAP, 0, 4, .check_relay = true},
+    {MSG_VZE_BAP, 0, 5, .check_relay = true},
+    {MSG_VZE_BAP, 0, 6, .check_relay = true},
+    {MSG_VZE_BAP, 0, 7, .check_relay = true},
+    {MSG_VZE_BAP, 0, 8, .check_relay = true},
   };
 
   static RxCheck volkswagen_mqb_rx_checks[] = {
