@@ -80,6 +80,19 @@ class TestVzeBap(unittest.TestCase):
     self.assertEqual(out[0], OTHER_FRAMES[2])
     self.assertEqual(out[1][:6], h('801248500132'))  # then the change, 0x32 = 50
 
+  def test_clears_restricted_status(self):
+    relay = VzeBapRelay()
+    # camera status function 0x13: heartbeat (op3) and change (op4); only the 0x08 "restricted" bit is cleared
+    frames = [h('385308 0000'.replace(' ', '')), h('485308 0000'.replace(' ', '')), h('385309 0000'.replace(' ', ''))]
+    out, _ = run(relay, frames, limit=0)
+    self.assertEqual(out, [h('3853000000'), h('4853000000'), h('3853010000')])
+
+  def test_restricted_bit_only_touched_in_status_function(self):
+    relay = VzeBapRelay()
+    frames = [h('3854080000 01'.replace(' ', '')), h('384d10')]  # 0x14 and 0x0d carry 0x08/0x10 legitimately
+    out, _ = run(relay, frames, limit=0)
+    self.assertEqual(out, frames)
+
   def test_drops_stale_frames(self):
     relay = VzeBapRelay()
     for f in NA_SIGN_HEARTBEAT:

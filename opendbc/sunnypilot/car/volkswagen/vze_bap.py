@@ -22,6 +22,10 @@ from collections import deque
 VZE_BAP_ADDR = 0x17332110
 VZE_LSG = 0x21
 VZE_FCT_SIGN = 0x10
+# Camera status bits. 0x08 makes the cluster show "Traffic sign recognition restricted" (seen on a North American camera
+# once navigation data told it the country). The camera's own sign is replaced, so its restriction does not apply.
+VZE_FCT_STATUS = 0x13
+VZE_STATUS_RESTRICTED = 0x08
 OP_HEARTBEAT_STATUS = 3
 OP_STATUS = 4
 SIGN_PAYLOAD_LEN = 18
@@ -78,6 +82,8 @@ class VzeBapRelay:
       _, lsg, fct = parse_header(d[0], d[1])
       if lsg == VZE_LSG and fct == VZE_FCT_SIGN and len(d) > 2:
         d[2:] = sign_payload(self.kph, len(d) - 2)
+      elif lsg == VZE_LSG and fct == VZE_FCT_STATUS and len(d) > 2:
+        d[2] &= ~VZE_STATUS_RESTRICTED & 0xFF
     elif d[0] & 0xC0 == 0x80:  # start of a multi frame
       if len(d) >= 4:
         _, lsg, fct = parse_header(d[2], d[3])
