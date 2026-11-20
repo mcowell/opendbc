@@ -16,3 +16,7 @@ class VolkswagenSafetyFlagsSP:
 class VolkswagenFlagsSP(IntFlag):
   # show openpilot's speed limit as the traffic sign in the instrument cluster (MQB only)
   VZE_DISPLAY = 1
+  # draw it as the Canadian MAXIMUM sign (BAP type 0x41) instead of the EU round sign
+  VZE_CANADA = 2
+  # also show the camera's own (map) no-passing sign next to it
+  VZE_NO_PASSING = 4

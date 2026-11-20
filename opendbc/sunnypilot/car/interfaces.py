@@ -190,6 +190,10 @@ def _initialize_volkswagen_vze(CP: structs.CarParams, CP_SP: structs.CarParamsSP
   if CP.brand == 'volkswagen' and is_mqb and int(params_dict.get("VolkswagenClusterSpeedLimit", 0)) == 1:
     CP_SP.flags |= VolkswagenFlagsSP.VZE_DISPLAY.value
     CP_SP.safetyParam |= VolkswagenSafetyFlagsSP.VZE
+    if int(params_dict.get("SpeedLimitSignStyle", 0)) == 1:
+      CP_SP.flags |= VolkswagenFlagsSP.VZE_CANADA.value
+    if int(params_dict.get("VolkswagenClusterNoPassing", 0)) == 1:
+      CP_SP.flags |= VolkswagenFlagsSP.VZE_NO_PASSING.value
 
 
 def _initialize_toyota(CP: structs.CarParams, CP_SP: structs.CarParamsSP, params_dict: dict[str, str]) -> None:

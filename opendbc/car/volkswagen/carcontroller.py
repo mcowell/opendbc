@@ -8,7 +8,7 @@ from opendbc.car.volkswagen import mebcan, mlbcan, mqbcan, pqcan
 from opendbc.car.volkswagen.values import CanBus, CarControllerParams, VolkswagenFlags
 from opendbc.car.can_definitions import CanData
 from opendbc.sunnypilot.car.volkswagen.values_ext import VolkswagenFlagsSP
-from opendbc.sunnypilot.car.volkswagen.vze_bap import VZE_BAP_ADDR, VzeBapRelay
+from opendbc.sunnypilot.car.volkswagen.vze_bap import STYLE_CANADA, STYLE_EU, VZE_BAP_ADDR, VzeBapRelay
 
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 VZE_STEP = 20  # VZE_01/VZE_02 at 5 Hz, as sent by the camera
@@ -63,7 +63,10 @@ class CarController(CarControllerBase):
     self.distance_bar_frame = 0
     self.gra_acc_counter_last = None
     self.hca_mitigation = HCAMitigation(self.CCP)
-    self.vze_bap = VzeBapRelay() if CP_SP.flags & VolkswagenFlagsSP.VZE_DISPLAY else None
+    self.vze_bap = None
+    if CP_SP.flags & VolkswagenFlagsSP.VZE_DISPLAY:
+      self.vze_bap = VzeBapRelay(style=STYLE_CANADA if CP_SP.flags & VolkswagenFlagsSP.VZE_CANADA else STYLE_EU,
+                                 pass_no_passing=bool(CP_SP.flags & VolkswagenFlagsSP.VZE_NO_PASSING))
 
   def update(self, CC, CC_SP, CS, now_nanos):
     actuators = CC.actuators

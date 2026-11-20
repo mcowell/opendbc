@@ -10,11 +10,11 @@ from opendbc.sunnypilot.car.volkswagen.vze_bap import VZE_BAP_ADDR
 CAM_SIGN = [bytes.fromhex(x) for x in ('8012385000000000', 'c000000000000000', 'c100000000000000')]
 
 
-def make_interface(enabled: bool):
+def make_interface(enabled: bool, extra: list[dict] | None = None):
   CI = interfaces[CAR.AUDI_A3_MK3]
   CP = CI.get_non_essential_params(CAR.AUDI_A3_MK3)
   CP_SP = CI.get_non_essential_params_sp(CP, CAR.AUDI_A3_MK3)
-  setup_interfaces(CI, CP, CP_SP, [{"VolkswagenClusterSpeedLimit": enabled}])
+  setup_interfaces(CI, CP, CP_SP, [{"VolkswagenClusterSpeedLimit": enabled}] + (extra or []))
   return CI(CP, CP_SP)
 
 
@@ -47,6 +47,12 @@ class TestVzeInterface(unittest.TestCase):
       self.assertIn(bytes.fromhex('8012485001500000'), out, as_candata)
       self.assertEqual(out[-3:], [bytes.fromhex('8012385001500000'), bytes.fromhex('c010000000000000'),
                                   bytes.fromhex('c100000000000000')], as_candata)
+
+  def test_canadian_style_setting(self):
+    out = run(make_interface(True, [{"SpeedLimitSignStyle": 1}]), CAM_SIGN * 2, as_candata=False)
+    self.assertEqual(out[-3][:6], bytes.fromhex('801238504150'))
+    out = run(make_interface(True, [{"SpeedLimitSignStyle": 0}]), CAM_SIGN * 2, as_candata=False)
+    self.assertEqual(out[-3][:6], bytes.fromhex('801238500150'))
 
 
 if __name__ == '__main__':
