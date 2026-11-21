@@ -6,6 +6,7 @@ from opendbc.car.volkswagen.values import DBC, CanBus, NetworkLocation, Transmis
                                                       CarControllerParams, VolkswagenFlags
 
 ButtonType = structs.CarState.ButtonEvent.Type
+STOCK_FCW_TTC = 2.5  # s, MQB ACC_10 PCF_Time_to_collision below which the priority warning is a collision warning
 
 
 class CarState(CarStateBase):
@@ -104,7 +105,12 @@ class CarState(CarStateBase):
       ret.leftBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_li"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_li"])
       ret.rightBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_re"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_re"])
 
-    ret.stockFcw = bool(ext_cp.vl["ACC_10"]["AWV2_Freigabe"])
+    # Front Assist collision warning. On an A3 8V (2019) AWV2_Freigabe never set, even in three real warnings; brake
+    # pre-fill did in all three and never otherwise. AWV2_Priowarnung also flags non-collision messages (seen at
+    # 60-110 km/h with no target), so it only counts with a short time to collision (2.55 s = no target).
+    acc_10 = ext_cp.vl["ACC_10"]
+    ret.stockFcw = bool(acc_10["AWV2_Freigabe"]) or bool(acc_10["AWV1_Anf_Prefill"]) or \
+                   (bool(acc_10["AWV2_Priowarnung"]) and acc_10["PCF_Time_to_collision"] < STOCK_FCW_TTC)
     ret.stockAeb = bool(ext_cp.vl["ACC_10"]["ANB_Teilbremsung_Freigabe"]) or bool(ext_cp.vl["ACC_10"]["ANB_Zielbremsung_Freigabe"])
 
     self.acc_type = ext_cp.vl["ACC_06"]["ACC_Typ"]
