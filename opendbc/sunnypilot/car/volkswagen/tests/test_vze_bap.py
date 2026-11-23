@@ -1,7 +1,7 @@
 import unittest
 
 from opendbc.sunnypilot.car.volkswagen.vze_bap import (VzeBapRelay, bap_header, parse_header, passing_slots, sign_payload,
-                                                      OP_STATUS, STYLE_CANADA)
+                                                      COND_SCHOOL, OP_STATUS, STYLE_CANADA)
 
 MS = 1_000_000
 h = bytes.fromhex
@@ -100,6 +100,18 @@ class TestVzeBap(unittest.TestCase):
     relay.set_limit(60)
     out = sum((relay.step(t * MS) for t in range(0, 100, 10)), [])
     self.assertEqual(out[0], h('80124850413c0000'))
+
+  def test_school_zone_plate(self):
+    self.assertEqual(sign_payload(40, style=STYLE_CANADA, cond=COND_SCHOOL)[:6], h('41280c001000'))
+    relay = VzeBapRelay(style=STYLE_CANADA)
+    relay.set_limit(40)
+    out = sum((relay.step(t * MS) for t in range(0, 100, 10)), [])
+    self.assertEqual(out[0], h('8012485041280000'))
+    relay.set_limit(40, school_zone=True)  # the plate alone changing is announced
+    out = sum((relay.step(t * MS) for t in range(100, 200, 10)), [])
+    self.assertEqual(out[0], h('8012485041280c00'))
+    relay.set_limit(0, school_zone=True)  # no plate without a sign
+    self.assertEqual(relay.payload(), bytes(18))
 
   def test_passing_slots(self):
     cam = h('012800000200' + '000000000000' + '050000000200')  # as the A3 camera sent it: 40 + no passing in slot 3

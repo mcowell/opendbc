@@ -145,6 +145,7 @@ class CarControlSP:
   leadTwo: 'LeadData' = field(default_factory=lambda: LeadData())
   intelligentCruiseButtonManagement: 'IntelligentCruiseButtonManagement' = field(default_factory=lambda: IntelligentCruiseButtonManagement())
   speedLimitDisplay: float = auto_field()  # m/s, 0 = none; speed limit to show on car displays (e.g. VW cluster traffic sign)
+  speedLimitSchoolZone: bool = auto_field()  # that limit is a school zone limit (from the camera): school plate on car displays
 
   @auto_dataclass
   class Param:

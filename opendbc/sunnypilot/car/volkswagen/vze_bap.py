@@ -35,6 +35,7 @@ SIGN_PAYLOAD_LEN = 18
 SLOT_LEN = 6
 STYLE_EU = 0x00
 STYLE_CANADA = 0x40
+COND_SCHOOL = 0x0c  # condition plate under/over the sign: school zone
 NO_PASSING_SIGNS = (0x5, 0x9)            # the cluster draws both the same: no passing
 EU_ONLY_SIGNS = (0x6, 0xa, 0x7, 0xb, 0xd, 0xe)  # end of no passing, no passing for trucks, end of all restrictions
 MAX_AGE_NS = 200_000_000  # drop camera frames that waited longer than this (e.g. before panda engaged the relay)
@@ -50,12 +51,14 @@ def parse_header(hi: int, lo: int) -> tuple[int, int, int]:
   return h >> 12, (h >> 6) & 0x3F, h & 0x3F
 
 
-def sign_payload(kph: int, length: int = SIGN_PAYLOAD_LEN, style: int = STYLE_EU, extra: bytes = b'') -> bytes:
-  """openpilot's speed limit in slot 1 (none when kph is 0), followed by extra slots"""
+def sign_payload(kph: int, length: int = SIGN_PAYLOAD_LEN, style: int = STYLE_EU, extra: bytes = b'', cond: int = 0) -> bytes:
+  """openpilot's speed limit in slot 1 (none when kph is 0) with condition plate cond (0 none, COND_SCHOOL), followed by
+  extra slots"""
   p = bytearray(max(length, SIGN_PAYLOAD_LEN))
   if kph > 0:
     p[0] = style | 0x01     # speed limit sign
     p[1] = min(kph, 0xFF)
+    p[2] = cond
     p[4] = 0x10             # source/flags as sent by the camera
   p[SLOT_LEN:SLOT_LEN + len(extra)] = extra[:SIGN_PAYLOAD_LEN - SLOT_LEN]
   return bytes(p[:length])
@@ -91,16 +94,18 @@ class VzeBapRelay:
     self.style = style
     self.pass_no_passing = pass_no_passing
     self.kph = 0
+    self.cond = 0             # condition plate on openpilot's sign
     self.extra = b''          # slots 2-3: the camera's no-passing sign, when passed through
     self.announced = bytes(SIGN_PAYLOAD_LEN)  # camera starts with "no sign"
     self._mf = None           # camera multi-frame in progress: dict(sign, length, channel, pos, payload, camera)
     self._out: deque[tuple[int, bytes]] = deque()
 
-  def set_limit(self, kph: float) -> None:
+  def set_limit(self, kph: float, school_zone: bool = False) -> None:
     self.kph = max(0, min(int(round(kph)), 0xFF))
+    self.cond = COND_SCHOOL if school_zone and self.kph else 0
 
   def payload(self, length: int = SIGN_PAYLOAD_LEN) -> bytes:
-    return sign_payload(self.kph, length, self.style, self.extra)
+    return sign_payload(self.kph, length, self.style, self.extra, self.cond)
 
   def _camera_sign(self, camera_payload: bytes) -> None:
     """A complete sign payload from the camera (before rewriting)"""
