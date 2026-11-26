@@ -1,7 +1,7 @@
 import unittest
 
 from opendbc.sunnypilot.car.volkswagen.vze_bap import (VzeBapRelay, bap_header, parse_header, passing_slots, sign_payload,
-                                                      COND_SCHOOL, OP_STATUS, STYLE_CANADA)
+                                                      COND_SCHOOL, COND_WORK, OP_STATUS, STYLE_CANADA)
 
 MS = 1_000_000
 h = bytes.fromhex
@@ -111,6 +111,17 @@ class TestVzeBap(unittest.TestCase):
     out = sum((relay.step(t * MS) for t in range(100, 200, 10)), [])
     self.assertEqual(out[0], h('8012485041280c00'))
     relay.set_limit(0, school_zone=True)  # no plate without a sign
+    self.assertEqual(relay.payload(), bytes(18))
+
+  def test_work_zone_plate(self):
+    self.assertEqual(sign_payload(60, style=STYLE_CANADA, cond=COND_WORK)[:6], h('413c0e001000'))
+    relay = VzeBapRelay(style=STYLE_CANADA)
+    relay.set_limit(60, work_zone=True)
+    out = sum((relay.step(t * MS) for t in range(0, 100, 10)), [])
+    self.assertEqual(out[0], h('80124850413c0e00'))
+    relay.set_limit(40, school_zone=True, work_zone=True)  # the school plate wins
+    self.assertEqual(relay.payload()[:3], h('41280c'))
+    relay.set_limit(0, work_zone=True)  # no plate without a sign
     self.assertEqual(relay.payload(), bytes(18))
 
   def test_passing_slots(self):

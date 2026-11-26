@@ -146,6 +146,7 @@ class CarControlSP:
   intelligentCruiseButtonManagement: 'IntelligentCruiseButtonManagement' = field(default_factory=lambda: IntelligentCruiseButtonManagement())
   speedLimitDisplay: float = auto_field()  # m/s, 0 = none; speed limit to show on car displays (e.g. VW cluster traffic sign)
   speedLimitSchoolZone: bool = auto_field()  # that limit is a school zone limit (from the camera): school plate on car displays
+  speedLimitWorkZone: bool = auto_field()  # in a work zone (road work sign seen by the camera): work zone plate on car displays
 
   @auto_dataclass
   class Param:

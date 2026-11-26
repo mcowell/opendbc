@@ -36,6 +36,7 @@ SLOT_LEN = 6
 STYLE_EU = 0x00
 STYLE_CANADA = 0x40
 COND_SCHOOL = 0x0c  # condition plate under/over the sign: school zone
+COND_WORK = 0x0e    # ... work zone (orange WORK plate; Canadian sign style, checked on the A3's Virtual Cockpit)
 NO_PASSING_SIGNS = (0x5, 0x9)            # the cluster draws both the same: no passing
 EU_ONLY_SIGNS = (0x6, 0xa, 0x7, 0xb, 0xd, 0xe)  # end of no passing, no passing for trucks, end of all restrictions
 MAX_AGE_NS = 200_000_000  # drop camera frames that waited longer than this (e.g. before panda engaged the relay)
@@ -52,7 +53,7 @@ def parse_header(hi: int, lo: int) -> tuple[int, int, int]:
 
 
 def sign_payload(kph: int, length: int = SIGN_PAYLOAD_LEN, style: int = STYLE_EU, extra: bytes = b'', cond: int = 0) -> bytes:
-  """openpilot's speed limit in slot 1 (none when kph is 0) with condition plate cond (0 none, COND_SCHOOL), followed by
+  """openpilot's speed limit in slot 1 (none when kph is 0) with condition plate cond (0 none, COND_SCHOOL, COND_WORK), followed by
   extra slots"""
   p = bytearray(max(length, SIGN_PAYLOAD_LEN))
   if kph > 0:
@@ -100,9 +101,10 @@ class VzeBapRelay:
     self._mf = None           # camera multi-frame in progress: dict(sign, length, channel, pos, payload, camera)
     self._out: deque[tuple[int, bytes]] = deque()
 
-  def set_limit(self, kph: float, school_zone: bool = False) -> None:
+  def set_limit(self, kph: float, school_zone: bool = False, work_zone: bool = False) -> None:
+    """A plate needs a sign: none without a limit. The school plate wins: its limit is the school zone's."""
     self.kph = max(0, min(int(round(kph)), 0xFF))
-    self.cond = COND_SCHOOL if school_zone and self.kph else 0
+    self.cond = 0 if not self.kph else COND_SCHOOL if school_zone else COND_WORK if work_zone else 0
 
   def payload(self, length: int = SIGN_PAYLOAD_LEN) -> bytes:
     return sign_payload(self.kph, length, self.style, self.extra, self.cond)

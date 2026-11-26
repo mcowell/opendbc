@@ -207,7 +207,7 @@ class CarController(CarControllerBase):
       speed_limit_kph = CC_SP.speedLimitDisplay * CV.MS_TO_KPH
       if self.frame % VZE_STEP == 0:
         can_sends.extend(mqbcan.create_vze_display(self.packer_pt, self.CAN.pt, speed_limit_kph))
-      self.vze_bap.set_limit(speed_limit_kph, CC_SP.speedLimitSchoolZone)
+      self.vze_bap.set_limit(speed_limit_kph, CC_SP.speedLimitSchoolZone, CC_SP.speedLimitWorkZone)
       can_sends.extend(CanData(VZE_BAP_ADDR, frame, self.CAN.pt) for frame in self.vze_bap.step(now_nanos))
 
     # **** Stock ACC Button Controls **************************************** #
